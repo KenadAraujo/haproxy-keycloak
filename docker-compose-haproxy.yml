@@ -1,0 +1,37 @@
+version: '3.9'
+services:
+  proxy:
+    image: haproxy:latest
+    container_name: proxy
+    volumes:
+      - ./cert/:/home/cert/
+      - ./home_page/:/usr/local/apache2/htdocs/
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - 443:443
+    networks:
+      - sso
+    depends_on:
+      - sso
+  sso:
+    build: 
+      context: keycloak/.
+    container_name: sso
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes
+    environment:
+      - KC_HOSTNAME_STRICT=true
+      - KC_HOSTNAME_STRICT_HTTPS=true
+      - SERVER_PORT=8080
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KC_PROXY=edge
+      - KC_HOSTNAME_URL=https://localhost/sso
+      - KC_HOSTNAME_ADMIN_URL=https://localhost/sso
+    entrypoint: "/opt/keycloak/bin/kc.sh -v start --spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false --optimized"
+    ports:
+      - 8081:8080
+    networks:
+      - sso
+networks:
+  sso:
